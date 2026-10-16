@@ -1,4 +1,4 @@
 package cipher;
 
-public class Decryptor {
+public class Decryptor extends FileCipher {
 }
