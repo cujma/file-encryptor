@@ -1,15 +1,20 @@
 package cipher;
 
-import java.nio.file.Path;
-import javax.crypto.SecretKey;
+import java.util.Objects;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.security.SecureRandom;
+import javax.crypto.SecretKey;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 
 
+
 public class Encryptor extends FileCipher{
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     public Encryptor(Path inputPath, Path outputPath) {
         super(inputPath, outputPath);
@@ -22,8 +27,7 @@ public class Encryptor extends FileCipher{
     private byte[] generateNonce(){
         byte[] nonce = new byte[12];
 
-        SecureRandom secureRandom = new SecureRandom();
-        secureRandom.nextBytes(nonce);
+        SECURE_RANDOM.nextBytes(nonce);
 
         return nonce;
     }
@@ -36,20 +40,40 @@ public class Encryptor extends FileCipher{
         return cipher.doFinal(data);
     }
 
-    private byte[] combineData(byte[] nonce, byte[] encryptedData){
-        byte[] outputData = new byte[nonce.length + encryptedData.length];
+    private byte[] combineData(byte[] salt, byte[] nonce, byte[] encryptedData) {
+        byte[] outputData = new byte[salt.length + nonce.length + encryptedData.length];
 
-        System.arraycopy(nonce, 0, outputData, 0, nonce.length);
-        System.arraycopy(encryptedData, 0, outputData, nonce.length, encryptedData.length);
+        System.arraycopy(salt, 0, outputData, 0, salt.length);
+        System.arraycopy(nonce, 0, outputData, salt.length, nonce.length);
+        System.arraycopy(encryptedData, 0, outputData, salt.length + nonce.length, encryptedData.length);
 
         return outputData;
     }
 
-    public void encrypt(SecretKey key, SaveMode saveMode) throws IOException, GeneralSecurityException {
-        byte[] data = readInput();
-        byte[] nonce = generateNonce();
-        byte[] encryptedData = encryptData(data, key, nonce);
-        byte[] outputData = combineData(nonce, encryptedData);
+    private byte[] generateSalt() {
+        byte[] salt = new byte[16];
+        SECURE_RANDOM.nextBytes(salt);
+        return salt;
+    }
+
+    public void encrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
+        byte[] data;
+        byte[] salt;
+        byte[] nonce;
+        byte[] encryptedData;
+        byte[] outputData;
+        SecretKey key;
+
+        Objects.requireNonNull(password, "password");
+        Objects.requireNonNull(saveMode, "saveMode");
+
+        data = readInput();
+        salt = generateSalt();
+        key = KeyDerivation.deriveKey(password, salt);
+        nonce = generateNonce();
+
+        encryptedData = encryptData(data, key, nonce);
+        outputData = combineData(salt, nonce, encryptedData);
 
         saveOutput(outputData, saveMode);
     }
