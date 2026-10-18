@@ -1,21 +1,27 @@
 package cipher;
 
+import java.util.Arrays;
+import java.util.Objects;
+import java.io.IOException;
+import java.nio.file.Path;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Objects;
 
 public class Decryptor extends FileCipher {
 
-    public Decryptor(Path inputPath, Path outputPath) {
+    private static final int SALT_LENGTH = 16;
+    private static final int NONCE_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 16;
+    private static final int HEADER_LENGTH = SALT_LENGTH + NONCE_LENGTH;
+    private static final int MIN_ENCRYPTED_FILE_LENGTH = HEADER_LENGTH + GCM_TAG_LENGTH;
+
+    public Decryptor(Path inputPath, Path outputPath){
         super(inputPath, outputPath);
     }
 
-    public Decryptor(Path inputPath) {
+    public Decryptor(Path inputPath){
         super(inputPath);
     }
 
@@ -28,28 +34,36 @@ public class Decryptor extends FileCipher {
     }
 
     public void decrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
-        byte[] fileData;
-        byte[] salt;
-        byte[] nonce;
-        byte[] encryptedData;
-        byte[] decryptedData;
-
         Objects.requireNonNull(password, "password");
         Objects.requireNonNull(saveMode, "saveMode");
 
-        fileData = readInput();
-
-        if (fileData.length < 44){
-            throw new IOException("Encrypted file is too short.");
+        if (password.length == 0) {
+            throw new IllegalArgumentException("Password cannot be empty.");
         }
 
-        salt = Arrays.copyOfRange(fileData, 0, 16);
-        nonce = Arrays.copyOfRange(fileData, 16, 28);
-        encryptedData = Arrays.copyOfRange(fileData, 28, fileData.length);
+        byte[] fileData = readInput();
+        EncryptedFileData encryptedFile = parseEncryptedFile(fileData);
 
-        SecretKey key = KeyDerivation.deriveKey(password, salt);
-        decryptedData = decryptData(encryptedData, key, nonce);
+        SecretKey key = KeyDerivation.deriveKey(password, encryptedFile.salt());
+        byte[] decryptedData = decryptData(encryptedFile.encryptedData(), key, encryptedFile.nonce());
 
         saveOutput(decryptedData, saveMode);
     }
+
+    private EncryptedFileData parseEncryptedFile(byte[] fileData) throws IOException {
+        Objects.requireNonNull(fileData, "fileData");
+
+        if (fileData.length < MIN_ENCRYPTED_FILE_LENGTH){
+            throw new IOException("Encrypted file is too short or invalid.");
+        }
+
+        byte[] salt = Arrays.copyOfRange(fileData, 0, SALT_LENGTH);
+        byte[] nonce = Arrays.copyOfRange(fileData, SALT_LENGTH, HEADER_LENGTH);
+        byte[] encryptedData = Arrays.copyOfRange(fileData, HEADER_LENGTH, fileData.length);
+
+        return new EncryptedFileData(salt, nonce, encryptedData);
+    }
+
+    private record EncryptedFileData(byte[] salt, byte[] nonce, byte[] encryptedData){}
+
 }

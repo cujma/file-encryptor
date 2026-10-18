@@ -1,101 +1,133 @@
 package cipher;
 
-import java.util.Objects;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 
-public abstract class FileCipher {
+public abstract class FileCipher{
+
     protected final Path inputPath;
     protected final Path outputPath;
 
-    public FileCipher(Path inputPath, Path outputPath) {
-        this.inputPath = Objects.requireNonNull(inputPath, "inputPath").toAbsolutePath().normalize();
-        this.outputPath = Objects.requireNonNull(outputPath, "outputPath").toAbsolutePath().normalize();
+    protected FileCipher(Path inputPath, Path outputPath) {
+        if (inputPath == null || outputPath == null) {
+            throw new IllegalArgumentException("Input and output paths cannot be null.");
+        }
+
+        this.inputPath = inputPath.toAbsolutePath().normalize();
+        this.outputPath = outputPath.toAbsolutePath().normalize();
+
+        if (this.inputPath.equals(this.outputPath)) {
+            throw new IllegalArgumentException("Input and output paths must be different.");
+        }
     }
 
-    public FileCipher(Path inputPath) {
-        this.inputPath = Objects.requireNonNull(inputPath, "inputPath").toAbsolutePath().normalize();
+    protected FileCipher(Path inputPath) {
+        if (inputPath == null) {
+            throw new IllegalArgumentException("Input path cannot be null.");
+        }
+
+        this.inputPath = inputPath.toAbsolutePath().normalize();
         this.outputPath = null;
     }
 
     protected byte[] readInput() throws IOException {
-        if(!Files.exists(inputPath)){
+        if (!Files.exists(inputPath)) {
             throw new IOException("Input file does not exist.");
         }
 
-        if(!Files.isRegularFile(inputPath)){
+        if (Files.isSymbolicLink(inputPath)) {
+            throw new IOException("Symbolic links are not supported.");
+        }
+
+        if (!Files.isRegularFile(inputPath)) {
             throw new IOException("Input path is not a regular file.");
+        }
+
+        if (!Files.isReadable(inputPath)) {
+            throw new IOException("Input file is not readable.");
         }
 
         return Files.readAllBytes(inputPath);
     }
 
     protected void writeOutput(byte[] data) throws IOException {
-        Objects.requireNonNull(outputPath, "outputPath");
-        Objects.requireNonNull(data, "data");
+        if (outputPath == null){
+            throw new IllegalStateException("Output path has not been configured.");
+        }
 
-        if (inputPath.equals(outputPath)) {
-            throw new IOException("Input and output paths must be different.");
+        Path parent = outputPath.getParent();
+
+        if (parent == null || !Files.isDirectory(parent)) {
+            throw new IOException("Output directory does not exist.");
         }
 
         Files.write(outputPath, data, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
     }
 
-    protected void replaceOriginal(byte[] data) throws IOException{
-        Path parent;
-        Path tempPath;
-
-        Objects.requireNonNull(data, "data");
-
-        if(Files.isSymbolicLink(inputPath)){
-            throw new IOException("Symbolic links are not supported.");
+    protected void replaceOriginal(byte[] data) throws IOException {
+        if (outputPath == null) {
+            throw new IllegalStateException("A destination path is required to replace the original.");
         }
 
-        if(!Files.isRegularFile(inputPath)){
-            throw new IOException("Input path is not a regular file.");
+        Path parent = inputPath.getParent();
+
+        if (parent == null || !Files.isDirectory(parent)) {
+            throw new IOException("Input directory does not exist.");
         }
 
-        parent = inputPath.getParent();
-
-        if (parent == null) {
-            throw new IOException("Input file has no parent directory.");
+        if (!Files.isDirectory(outputPath.getParent())) {
+            throw new IOException("Output directory does not exist.");
         }
 
-        tempPath = Files.createTempFile(parent, "cipher-", ".tmp");
+        if (Files.exists(outputPath)) {
+            throw new IOException("Destination file already exists: " + outputPath);
+        }
+
+        Path tempFile = Files.createTempFile(parent, ".file-cipher-", ".tmp");
+
+        boolean movedToDestination = false;
 
         try {
-            Files.write(tempPath, data, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.write(tempFile, data, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+
+            try {
+                Files.move(tempFile, outputPath, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                throw new IOException("Atomic file move is not supported. " + "The original file was kept.", e);
+            }
+
+            movedToDestination = true;
 
             try{
-                Files.move(tempPath, inputPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                Files.delete(inputPath);
+            } catch (IOException e) {
+                throw new IOException("The result was saved to " + outputPath + ", but the old file could not be deleted: " + inputPath, e);
             }
-            catch(AtomicMoveNotSupportedException e){
-                throw new IOException("Atomic replacement is not supported by this filesystem.", e);
-            }
+
         }finally {
-            Files.deleteIfExists(tempPath);
+            if(!movedToDestination || Files.exists(tempFile)){
+                Files.deleteIfExists(tempFile);
+            }
         }
     }
 
     protected void saveOutput(byte[] data, SaveMode saveMode) throws IOException {
-        Objects.requireNonNull(saveMode, "saveMode");
 
-        if(saveMode == SaveMode.SEPARATE_FILE && outputPath == null){
-            throw new IllegalStateException("Output path must be specified when using SEPARATE_FILE save mode.");
+        if(data == null) {
+            throw new IllegalArgumentException("Output data cannot be null.");
         }
 
-        if(saveMode == SaveMode.REPLACE_ORIGINAL && outputPath != null){
-            throw new IllegalStateException("Output path must be null when using REPLACE_ORIGINAL save mode.");
+        if(saveMode == null){
+            throw new IllegalArgumentException("Save mode cannot be null.");
         }
 
-        switch(saveMode){
+        switch (saveMode) {
             case SEPARATE_FILE -> writeOutput(data);
             case REPLACE_ORIGINAL -> replaceOriginal(data);
         }
     }
-
 }

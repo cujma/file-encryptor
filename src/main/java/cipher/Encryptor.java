@@ -3,17 +3,15 @@ package cipher;
 import java.util.Objects;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
-import java.security.SecureRandom;
 import javax.crypto.SecretKey;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 
 
 
 public class Encryptor extends FileCipher{
-
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     public Encryptor(Path inputPath, Path outputPath) {
@@ -26,7 +24,6 @@ public class Encryptor extends FileCipher{
 
     private byte[] generateNonce(){
         byte[] nonce = new byte[12];
-
         SECURE_RANDOM.nextBytes(nonce);
 
         return nonce;
@@ -57,23 +54,20 @@ public class Encryptor extends FileCipher{
     }
 
     public void encrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
-        byte[] data;
-        byte[] salt;
-        byte[] nonce;
-        byte[] encryptedData;
-        byte[] outputData;
-        SecretKey key;
-
         Objects.requireNonNull(password, "password");
         Objects.requireNonNull(saveMode, "saveMode");
 
-        data = readInput();
-        salt = generateSalt();
-        key = KeyDerivation.deriveKey(password, salt);
-        nonce = generateNonce();
+        if (password.length == 0) {
+            throw new IllegalArgumentException("Password cannot be empty.");
+        }
 
-        encryptedData = encryptData(data, key, nonce);
-        outputData = combineData(salt, nonce, encryptedData);
+        byte[] data = readInput();
+        byte[] salt = generateSalt();
+        SecretKey key = KeyDerivation.deriveKey(password, salt);
+        byte[] nonce = generateNonce();
+
+        byte[] encryptedData = encryptData(data, key, nonce);
+        byte[] outputData = combineData(salt, nonce, encryptedData);
 
         saveOutput(outputData, saveMode);
     }
