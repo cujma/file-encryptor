@@ -1,0 +1,162 @@
+
+.root {
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+    -fx-background-color: #111318;
+}
+
+.main-view {
+    -fx-background-color: #111318;
+    -fx-spacing: 15px;
+    -fx-alignment: top-center;
+}
+
+.title {
+    -fx-font-size: 23px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f4f6fb;
+}
+
+.subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #858d9c;
+}
+
+.section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #b7c0cf;
+}
+
+.label {
+    -fx-text-fill: #e7eaf0;
+}
+
+.text-field,
+.password-field,
+.text-area {
+    -fx-background-color: #191c23;
+    -fx-control-inner-background: #191c23;
+    -fx-text-fill: #e7eaf0;
+    -fx-prompt-text-fill: #687181;
+    -fx-border-color: #2c313c;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-padding: 9px 10px;
+    -fx-font-size: 11px;
+}
+
+.text-area .content {
+    -fx-background-color: #191c23;
+    -fx-background-radius: 7px;
+}
+
+.text-field:focused,
+.password-field:focused,
+.text-area:focused {
+    -fx-border-color: #477fe5;
+}
+
+.button {
+    -fx-background-color: #242832;
+    -fx-text-fill: #dce2ed;
+    -fx-background-radius: 7px;
+    -fx-border-radius: 7px;
+    -fx-border-color: #343a47;
+    -fx-padding: 9px 12px;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #303644;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.primary-button {
+    -fx-background-color: #3979ed;
+    -fx-border-color: #3979ed;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 12px;
+    -fx-background-radius: 8px;
+}
+
+.primary-button:hover {
+    -fx-background-color: #4b89ff;
+    -fx-border-color: #4b89ff;
+}
+
+.radio-button,
+.check-box {
+    -fx-text-fill: #c0c7d4;
+    -fx-font-size: 11px;
+}
+
+.radio-button .radio {
+    -fx-background-color: #1b1f28;
+    -fx-border-color: #454d5d;
+    -fx-border-radius: 100px;
+}
+
+.radio-button:selected .radio {
+    -fx-border-color: #5794ff;
+}
+
+.radio-button:selected .radio .dot {
+    -fx-background-color: #5794ff;
+}
+
+.check-box .box {
+    -fx-background-color: #1b1f28;
+    -fx-border-color: #454d5d;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.status-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9aa5b7;
+}
+
+.progress-bar {
+    -fx-accent: #3979ed;
+    -fx-control-inner-background: #242832;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.progress-bar .track {
+    -fx-background-color: #242832;
+    -fx-background-radius: 6px;
+    -fx-background-insets: 0;
+}
+
+.progress-bar .bar {
+    -fx-background-color: #3979ed;
+    -fx-background-radius: 6px;
+    -fx-background-insets: 0;
+    -fx-padding: 5px;
+}
+
+.text-area .scroll-pane,
+.text-area .scroll-pane .viewport {
+    -fx-background-color: #191c23;
+}
+
+.text-area .scroll-bar:vertical {
+    -fx-background-color: #191c23;
+}
+
+.text-area .scroll-bar:vertical .thumb {
+    -fx-background-color: #454d5d;
+    -fx-background-radius: 5px;
+}
