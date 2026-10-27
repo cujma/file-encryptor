@@ -1,6 +1,7 @@
 # File Encryptor
 
 A small desktop application for encrypting and decrypting individual files. It is written in Java with JavaFX and works locally.
+<br>
 
 ## Running the application
 
