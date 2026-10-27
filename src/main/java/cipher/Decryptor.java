@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.DoubleConsumer;
 
 public class Decryptor extends FileCipher {
     private static final int HEADER_LENGTH = MAGIC.length + 1 + SALT_LENGTH + NONCE_PREFIX_LENGTH;
@@ -25,10 +26,19 @@ public class Decryptor extends FileCipher {
     }
 
     public void decrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
+        decrypt(password, saveMode, progress -> {
+        });
+    }
+
+    public void decrypt(char[] password, SaveMode saveMode, DoubleConsumer progress)
+            throws IOException, GeneralSecurityException {
         Objects.requireNonNull(password, "Password cannot be null");
         Objects.requireNonNull(saveMode, "Save mode cannot be null");
+        Objects.requireNonNull(progress, "Progress callback cannot be null");
 
         Path tempFile = createTempOutputFile(saveMode);
+        long totalBytes = Files.size(inputPath);
+        long processedBytes = 0;
 
         byte[] header = new byte[HEADER_LENGTH];
         byte[] salt = null;
@@ -44,6 +54,8 @@ public class Decryptor extends FileCipher {
                 }
 
                 validateHeader(header);
+                processedBytes = HEADER_LENGTH;
+                progress.accept(Math.min(1.0, (double) processedBytes / totalBytes));
 
                 int offset = MAGIC.length + 1;
 
@@ -80,6 +92,7 @@ public class Decryptor extends FileCipher {
 
                             try {
                                 input.readFully(finalTag);
+                                processedBytes += Integer.BYTES + finalTag.length;
 
                                 byte[] finalData = decryptChunk(finalTag, key, noncePrefix, header, counter, 0);
 
@@ -121,12 +134,15 @@ public class Decryptor extends FileCipher {
                         } finally {
                             Arrays.fill(encrypted, (byte) 0);
                         }
+                        processedBytes += Integer.BYTES + encrypted.length;
+                        progress.accept(Math.min(1.0, (double) processedBytes / totalBytes));
                         counter++;
                     }
                 }
             }
 
             commitOutput(tempFile, saveMode);
+            progress.accept(1.0);
 
         } finally {
             Files.deleteIfExists(tempFile);

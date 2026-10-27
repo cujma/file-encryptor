@@ -14,6 +14,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.DoubleConsumer;
 
 public class Encryptor extends FileCipher {
     private final SecureRandom secureRandom = new SecureRandom();
@@ -23,8 +24,15 @@ public class Encryptor extends FileCipher {
     }
 
     public void encrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
+        encrypt(password, saveMode, progress -> {
+        });
+    }
+
+    public void encrypt(char[] password, SaveMode saveMode, DoubleConsumer progress)
+            throws IOException, GeneralSecurityException {
         Objects.requireNonNull(password, "Password cannot be null");
         Objects.requireNonNull(saveMode, "Save mode cannot be null");
+        Objects.requireNonNull(progress, "Progress callback cannot be null");
 
         byte[] salt = new byte[SALT_LENGTH];
         byte[] noncePrefix = new byte[NONCE_PREFIX_LENGTH];
@@ -36,6 +44,8 @@ public class Encryptor extends FileCipher {
         byte[] header = createHeader(salt, noncePrefix);
         Path tempFile = createTempOutputFile(saveMode);
         byte[] buffer = new byte[CHUNK_SIZE];
+        long totalBytes = Files.size(inputPath);
+        long processedBytes = 0;
 
         try {
             try (InputStream input = new BufferedInputStream(Files.newInputStream(inputPath));
@@ -43,6 +53,7 @@ public class Encryptor extends FileCipher {
                          new BufferedOutputStream(Files.newOutputStream(tempFile)))) {
 
                 output.write(header);
+                progress.accept(totalBytes == 0 ? 1.0 : 0.0);
 
                 long counter = 0;
 
@@ -52,6 +63,7 @@ public class Encryptor extends FileCipher {
                     if (length == 0) {
                         break;
                     }
+                    processedBytes += length;
 
                     if (counter > 0xFFFF_FFFFL) {
                         throw new IOException("Maximum number of encrypted chunks exceeded.");
@@ -72,6 +84,9 @@ public class Encryptor extends FileCipher {
                     }
 
                     counter++;
+                    progress.accept(totalBytes == 0
+                            ? 1.0
+                            : Math.min(1.0, (double) processedBytes / totalBytes));
                 }
 
                 if (counter > 0xFFFF_FFFFL) {
@@ -92,6 +107,7 @@ public class Encryptor extends FileCipher {
             }
 
             commitOutput(tempFile, saveMode);
+            progress.accept(1.0);
 
         } finally {
             Files.deleteIfExists(tempFile);

@@ -344,7 +344,7 @@ public class MainView extends VBox {
 
         try {
             OperationCallbacks callbacks = new OperationCallbacks(
-                    this::appendMessage, this::appendError, this::operationFinished
+                    this::appendMessage, this::appendError, this::updateProgress, this::operationFinished
             );
             if (encrypt) {
                 handler.encrypt(
@@ -447,7 +447,7 @@ public class MainView extends VBox {
         messagesArea.clear();
         messagesArea.appendText("Operation started.\n");
 
-        progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        progressBar.setProgress(0);
         backButton.setDisable(true);
 
         formView.setVisible(false);
@@ -455,6 +455,13 @@ public class MainView extends VBox {
 
         progressView.setVisible(true);
         progressView.setManaged(true);
+    }
+
+    private void updateProgress(double progress) {
+        if (Double.isFinite(progress)) {
+            progressBar.setProgress(Math.max(0, Math.min(1, progress)));
+            status.setText(String.format("Progress: %.0f%%", progress * 100));
+        }
     }
 
     private void appendMessage(String message) {

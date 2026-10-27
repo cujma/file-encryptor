@@ -45,7 +45,8 @@ public final class FileOperationService implements FileOperationHandler {
                 try {
                     updateMessage(startMessage(operation));
 
-                    runCipher(input, output, passwordChars, saveMode, operation);
+                    runCipher(input, output, passwordChars, saveMode, operation,
+                            progress -> updateProgress(progress, 1.0));
                     return null;
                 } finally {
                     Arrays.fill(passwordChars, '\0');
@@ -58,6 +59,8 @@ public final class FileOperationService implements FileOperationHandler {
                 callbacks.onStatus().accept(newMessage);
             }
         });
+        task.progressProperty().addListener((observable, oldProgress, newProgress) ->
+                callbacks.onProgress().accept(newProgress.doubleValue()));
 
         task.setOnSucceeded(event -> {
             callbacks.onStatus().accept(completedMessage(operation));
@@ -94,11 +97,12 @@ public final class FileOperationService implements FileOperationHandler {
     }
 
     private void runCipher(Path input, Path output, char[] password, SaveMode saveMode,
-                           Operation operation) throws IOException, GeneralSecurityException {
+                           Operation operation, java.util.function.DoubleConsumer progress)
+            throws IOException, GeneralSecurityException {
         if (operation == Operation.ENCRYPT) {
-            new Encryptor(input, output).encrypt(password, saveMode);
+            new Encryptor(input, output).encrypt(password, saveMode, progress);
         } else {
-            new Decryptor(input, output).decrypt(password, saveMode);
+            new Decryptor(input, output).decrypt(password, saveMode, progress);
         }
     }
 }
