@@ -1,4 +1,3 @@
-
 package cipher;
 
 import javax.crypto.AEADBadTagException;
@@ -185,8 +184,7 @@ public class Decryptor extends FileCipher {
 
         } catch (AEADBadTagException e) {
             throw new AEADBadTagException(
-                    "Authentication failed. The password may be incorrect "
-                            + "or the encrypted file may be damaged."
+                    "Authentication failed. The password may be incorrect " + "or the encrypted file may be damaged."
             );
         } finally {
             Arrays.fill(nonce, (byte) 0);

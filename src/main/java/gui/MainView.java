@@ -32,7 +32,7 @@ public class MainView extends VBox {
 
     private final FileOperationHandler handler;
 
-    private final VBox formView = new VBox(15);
+    private final VBox formView = new VBox(10);
     private final VBox progressView = new VBox(16);
 
     private final ToggleGroup operationGroup = new ToggleGroup();
@@ -67,7 +67,7 @@ public class MainView extends VBox {
         this.handler = handler;
 
         getStyleClass().add("main-view");
-        setPadding(new Insets(25, 28, 22, 28));
+        setPadding(new Insets(18, 20, 4, 20));
         setAlignment(Pos.TOP_CENTER);
         setFillWidth(true);
 
@@ -81,15 +81,15 @@ public class MainView extends VBox {
         formView.setAlignment(Pos.TOP_CENTER);
         formView.setFillWidth(true);
 
-        VBox heading = heading("File Encryptor", "Secure your files with AES encryption");
+        VBox heading = heading("Encrypt your file", "");
         HBox operationSelector = operationSelector();
-        VBox inputSection = inputSection();
-        VBox outputSection = outputSection();
+        VBox fileSection = fileSection();
         VBox saveSection = saveSection();
         VBox passwordSection = passwordSection();
 
         actionButton.getStyleClass().add("primary-button");
         actionButton.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(actionButton, new Insets(8, 0, 2, 0));
         actionButton.setOnAction(event -> performOperation());
 
         addListeners();
@@ -97,8 +97,7 @@ public class MainView extends VBox {
         formView.getChildren().setAll(
                 heading,
                 operationSelector,
-                inputSection,
-                outputSection,
+                fileSection,
                 saveSection,
                 passwordSection,
                 actionButton
@@ -114,7 +113,7 @@ public class MainView extends VBox {
         progressView.setVisible(false);
         progressView.setManaged(false);
 
-        VBox heading = heading("File Encryptor", "Your operation is in progress");
+        VBox heading = heading("Encrypt your file", "Your operation is in progress");
 
         progressTitle.getStyleClass().add("section-title");
         status.getStyleClass().add("status-label");
@@ -156,10 +155,13 @@ public class MainView extends VBox {
         Label title = new Label(titleText);
         title.getStyleClass().add("title");
 
-        Label subtitle = new Label(subtitleText);
-        subtitle.getStyleClass().add("subtitle");
-
-        VBox heading = new VBox(6, title, subtitle);
+        VBox heading = new VBox(6);
+        heading.getChildren().add(title);
+        if (!subtitleText.isBlank()) {
+            Label subtitle = new Label(subtitleText);
+            subtitle.getStyleClass().add("subtitle");
+            heading.getChildren().add(subtitle);
+        }
         heading.setAlignment(Pos.CENTER);
         return heading;
     }
@@ -170,34 +172,36 @@ public class MainView extends VBox {
         encryptButton.setSelected(true);
 
         HBox selector = new HBox(28, encryptButton, decryptButton);
+        selector.getStyleClass().add("form-section");
         selector.setAlignment(Pos.CENTER);
+        selector.setMaxWidth(Double.MAX_VALUE);
         return selector;
     }
 
-    private VBox inputSection() {
+    private VBox fileSection() {
         inputField.setEditable(false);
         inputField.setPromptText("Choose a file...");
 
         Button browse = new Button("Browse");
         browse.setOnAction(event -> chooseInputFile());
 
-        HBox row = new HBox(8, inputField, browse);
-        row.setAlignment(Pos.CENTER);
-        HBox.setHgrow(inputField, Priority.ALWAYS);
-        return section("Input file", row);
-    }
-
-    private VBox outputSection() {
         outputDir.setEditable(false);
         outputDir.setPromptText("Output directory...");
 
         browseDirectoryButton = new Button("Browse");
         browseDirectoryButton.setOnAction(event -> chooseOutputDirectory());
 
-        HBox row = new HBox(8, outputDir, browseDirectoryButton);
-        row.setAlignment(Pos.CENTER);
+        HBox inputRow = new HBox(8, inputField, browse);
+        inputRow.setAlignment(Pos.CENTER);
+        HBox.setHgrow(inputField, Priority.ALWAYS);
+
+        HBox outputRow = new HBox(8, outputDir, browseDirectoryButton);
+        outputRow.setAlignment(Pos.CENTER);
         HBox.setHgrow(outputDir, Priority.ALWAYS);
-        return section("Output directory", row);
+
+        VBox inputGroup = fieldGroup("Input file", inputRow);
+        VBox outputGroup = fieldGroup("Output directory", outputRow);
+        return section("File locations", inputGroup, outputGroup);
     }
 
     private VBox saveSection() {
@@ -242,10 +246,20 @@ public class MainView extends VBox {
         label.getStyleClass().add("section-title");
 
         VBox section = new VBox(8);
+        section.getStyleClass().add("form-section");
         section.getChildren().add(label);
         section.getChildren().addAll(content);
         section.setMaxWidth(Double.MAX_VALUE);
         return section;
+    }
+
+    private VBox fieldGroup(String title, Node content) {
+        Label label = new Label(title);
+        label.getStyleClass().add("field-label");
+
+        VBox group = new VBox(5, label, content);
+        group.setFillWidth(true);
+        return group;
     }
 
     private void updateOperationMode() {
@@ -481,10 +495,13 @@ public class MainView extends VBox {
 
     private void showValidationError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("File Encryptor");
+        alert.setTitle("");
         alert.setHeaderText("Cannot start operation");
         alert.setContentText(message);
         alert.initOwner(getStage());
+        alert.getDialogPane().getStylesheets()
+                .add(getClass().getResource("/style.css").toExternalForm());
+        alert.getDialogPane().getStyleClass().add("error-alert");
         alert.showAndWait();
     }
 

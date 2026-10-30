@@ -1,13 +1,26 @@
 
 .root {
     -fx-font-family: "Inter", "Segoe UI", sans-serif;
-    -fx-background-color: #111318;
+    -fx-background-color: #151922;
 }
 
 .main-view {
-    -fx-background-color: #111318;
-    -fx-spacing: 15px;
+    -fx-background-color: #151922;
+    -fx-spacing: 10px;
     -fx-alignment: top-center;
+}
+
+.form-section {
+    -fx-background-color: #191c23;
+    -fx-border-color: #2c313c;
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-background-radius: 14px;
+    -fx-padding: 11px 13px 12px 13px;
+}
+
+.form-section:hover {
+    -fx-border-color: #3a4351;
 }
 
 .title {
@@ -25,6 +38,16 @@
     -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-text-fill: #b7c0cf;
+}
+
+.field-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #858d9c;
+}
+
+.form-section .section-title {
+    -fx-padding: 0 0 2px 1px;
 }
 
 .label {
@@ -80,9 +103,9 @@
     -fx-background-color: #3979ed;
     -fx-border-color: #3979ed;
     -fx-text-fill: white;
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-padding: 12px;
+    -fx-padding: 15px 12px;
     -fx-background-radius: 8px;
 }
 
@@ -159,4 +182,48 @@
 .text-area .scroll-bar:vertical .thumb {
     -fx-background-color: #454d5d;
     -fx-background-radius: 5px;
+}
+
+.error-alert {
+    -fx-background-color: #151922;
+    -fx-border-color: #2c313c;
+    -fx-border-width: 1px;
+}
+
+.error-alert .header-panel {
+    -fx-background-color: #191c23;
+    -fx-padding: 16px 18px 12px 18px;
+}
+
+.error-alert .header-panel .label {
+    -fx-text-fill: #e8edf2;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.error-alert > .content {
+    -fx-background-color: #151922;
+    -fx-padding: 16px 18px;
+}
+
+.error-alert > .content .label {
+    -fx-text-fill: #bdc9d6;
+    -fx-font-size: 12px;
+}
+
+.error-alert .button-bar {
+    -fx-background-color: #151922;
+    -fx-padding: 4px 12px 12px 12px;
+}
+
+.error-alert .button {
+    -fx-background-color: #3979ed;
+    -fx-border-color: #3979ed;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.error-alert .button:hover {
+    -fx-background-color: #4b89ff;
+    -fx-border-color: #4b89ff;
 }

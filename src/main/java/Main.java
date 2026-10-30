@@ -14,12 +14,13 @@ public class Main extends Application {
     public void start(Stage stage) {
         MainView view = new MainView(handler);
 
-        Scene scene = new Scene(view, 460, 700);
+        Scene scene = new Scene(view, 440, 640);
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
-        stage.setTitle("File Encryptor");
-        stage.setMinWidth(440);
-        stage.setMinHeight(660);
+        stage.setTitle("");
+        stage.setMinWidth(420);
+        stage.setMinHeight(640);
+        stage.setResizable(false);
         stage.setScene(scene);
         stage.show();
     }
