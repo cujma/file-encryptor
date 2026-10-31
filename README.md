@@ -1,6 +1,6 @@
 # File Encryptor
 
-A small desktop application for encrypting and decrypting individual files. It is written in Java with JavaFX and works locally.
+A small desktop application for encrypting and decrypting files and directories. It is written in Java with JavaFX and works locally.
 <br>
 
 ## Running the application
@@ -26,7 +26,7 @@ On the first run, Gradle downloads JavaFX and the other dependencies. The applic
 ## Usage
 
 1. Choose `Encrypt` or `Decrypt`.
-2. Select the input file.
+2. Select an input file or directory. Directories are available only for encryption.
 3. Choose how the output should be saved.
 4. Enter the password and start the operation.
 
@@ -34,7 +34,7 @@ When encrypting, the password must be entered twice for confirmation. The applic
 
 There are two output modes:
 - `Save as a new file` saves the result in the selected directory,
-- `Replace original file` replaces the input file only after the operation finishes successfully.
+- `Replace original file` replaces the input only after the operation finishes successfully. For a directory, the directory is archived, encrypted to a sibling `.enc` file, and deleted only after successful encryption.
 
 <br>
 
@@ -45,6 +45,15 @@ When encrypting to a separate file, `.enc` is added to the file name:
 ```text
 notes.txt -> notes.txt.enc
 ```
+
+When encrypting a directory, the directory is first stored as a ZIP payload and then encrypted:
+
+```text
+Documents/ -> Documents.enc
+Documents.enc -> Documents/
+```
+
+The encrypted format records whether its payload is a file or a directory. ZIP archives are never used as a heuristic for identifying the payload.
 
 When decrypting, `.enc` is removed:
 
@@ -62,13 +71,14 @@ File contents are encrypted using AES-256-GCM. The key is derived from the passw
 
 Files are processed in 64 KiB chunks, so the entire file does not have to be loaded into memory at once. During decryption, the integrity of every chunk is verified. An incorrect password, a modified file, or data appended to the end of the file causes the operation to stop.
 
-Encrypted files use a custom binary format created for this application. The format is not compatible with other encryption programs.
+Encrypted files use version 2 of a custom binary format created for this application. The header records the payload type (`FILE` or `DIRECTORY`), so directory archives are not identified by guessing whether decrypted bytes happen to be a ZIP file. The format is not compatible with other encryption programs or with older versions of this application.
 
 <br>
 
 ## Limitations
 
-- the application handles individual files, not entire directories,
+- symbolic links and special files inside directories are not supported,
+- replacing an original input permanently removes it after successful encryption,
 - there is no batch mode or command-line interface,
 - the password is not stored and cannot be recovered,
 - the strength of the protection depends partly on the quality of the password.
@@ -83,4 +93,4 @@ Run the tests with:
 ./gradlew test
 ```
 
-They cover successful encryption and decryption, empty and larger files, incorrect passwords, and replacing the original file.
+They cover successful encryption and decryption, empty and larger files, incorrect passwords, damaged files, replacing the original file, directory archiving, and unsafe archive paths.

@@ -7,6 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -27,6 +28,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Optional;
 
 public class MainView extends VBox {
 
@@ -62,6 +64,7 @@ public class MainView extends VBox {
     private final Button backButton = new Button("Back to file selection");
 
     private Button browseDirectoryButton;
+    private Button browseInputFolderButton;
 
     public MainView(FileOperationHandler handler) {
         this.handler = handler;
@@ -81,7 +84,7 @@ public class MainView extends VBox {
         formView.setAlignment(Pos.TOP_CENTER);
         formView.setFillWidth(true);
 
-        VBox heading = heading("Encrypt your file", "");
+        VBox heading = heading("Protect your data", "");
         HBox operationSelector = operationSelector();
         VBox fileSection = fileSection();
         VBox saveSection = saveSection();
@@ -113,7 +116,7 @@ public class MainView extends VBox {
         progressView.setVisible(false);
         progressView.setManaged(false);
 
-        VBox heading = heading("Encrypt your file", "Your operation is in progress");
+        VBox heading = heading("Protect your data", "Your operation is in progress");
 
         progressTitle.getStyleClass().add("section-title");
         status.getStyleClass().add("status-label");
@@ -182,8 +185,11 @@ public class MainView extends VBox {
         inputField.setEditable(false);
         inputField.setPromptText("Choose a file...");
 
-        Button browse = new Button("Browse");
+        Button browse = new Button("File");
         browse.setOnAction(event -> chooseInputFile());
+
+        browseInputFolderButton = new Button("Folder");
+        browseInputFolderButton.setOnAction(event -> chooseInputDirectory());
 
         outputDir.setEditable(false);
         outputDir.setPromptText("Output directory...");
@@ -191,7 +197,7 @@ public class MainView extends VBox {
         browseDirectoryButton = new Button("Browse");
         browseDirectoryButton.setOnAction(event -> chooseOutputDirectory());
 
-        HBox inputRow = new HBox(8, inputField, browse);
+        HBox inputRow = new HBox(8, inputField, browse, browseInputFolderButton);
         inputRow.setAlignment(Pos.CENTER);
         HBox.setHgrow(inputField, Priority.ALWAYS);
 
@@ -265,9 +271,22 @@ public class MainView extends VBox {
     private void updateOperationMode() {
         boolean encrypt = operationGroup.getSelectedToggle() == encryptButton;
 
+        if (!encrypt && !inputField.getText().isBlank()) {
+            try {
+                if (Files.isDirectory(Path.of(inputField.getText()))) {
+                    inputField.clear();
+                    outputDir.clear();
+                }
+            } catch (RuntimeException exception) {
+                inputField.clear();
+                outputDir.clear();
+            }
+        }
+
         actionButton.setText(encrypt ? "Encrypt file" : "Decrypt file");
         confirmPassword.setDisable(!encrypt);
         shownConfirmPassword.setDisable(!encrypt);
+        browseInputFolderButton.setDisable(!encrypt);
     }
 
     private void updateSaveMode() {
@@ -304,6 +323,20 @@ public class MainView extends VBox {
         if (parent != null) {
             outputDir.setText(parent.toString());
         }
+    }
+
+    private void chooseInputDirectory() {
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Select input directory");
+
+        File selected = chooser.showDialog(getStage());
+        if (selected == null) {
+            return;
+        }
+
+        Path input = selected.toPath().toAbsolutePath().normalize();
+        inputField.setText(input.toString());
+        outputDir.setText(input.getParent() == null ? input.toString() : input.getParent().toString());
     }
 
     private void chooseOutputDirectory() {
@@ -346,6 +379,10 @@ public class MainView extends VBox {
 
         Path output = getOutputPath(input, encrypt, separate);
         if (output == null) {
+            return;
+        }
+
+        if (encrypt && !separate && !confirmReplacement(input)) {
             return;
         }
 
@@ -393,8 +430,13 @@ public class MainView extends VBox {
 
         try {
             Path input = Path.of(inputField.getText()).toAbsolutePath().normalize();
-            if (!Files.isRegularFile(input) || !Files.isReadable(input)) {
-                showValidationError("The input file does not exist or cannot be read.");
+            if ((!Files.isRegularFile(input) && !Files.isDirectory(input))
+                    || !Files.isReadable(input)) {
+                showValidationError("The input file or directory does not exist or cannot be read.");
+                return null;
+            }
+            if (operationGroup.getSelectedToggle() == decryptButton && Files.isDirectory(input)) {
+                showValidationError("To decrypt a directory, select its encrypted .enc file.");
                 return null;
             }
             return input;
@@ -406,6 +448,14 @@ public class MainView extends VBox {
 
     private Path getOutputPath(Path input, boolean encrypt, boolean separate) {
         if (!separate) {
+            if (Files.isDirectory(input)) {
+                Path output = input.resolveSibling(input.getFileName() + ".enc");
+                if (Files.exists(output)) {
+                    showValidationError("The encrypted output already exists.");
+                    return null;
+                }
+                return output;
+            }
             return input;
         }
 
@@ -427,7 +477,9 @@ public class MainView extends VBox {
             return null;
         }
 
-        String outputName = outputName(input.getFileName().toString(), encrypt);
+        String outputName = encrypt
+                ? OutputNameResolver.forEncryption(input.getFileName().toString())
+                : OutputNameResolver.forDecryption(input.getFileName().toString());
         Path output = directory.resolve(outputName).normalize();
 
         if (output.equals(input)) {
@@ -435,24 +487,15 @@ public class MainView extends VBox {
             return null;
         }
 
+        if (!encrypt && Files.isDirectory(output)) {
+            output = OutputNameResolver.nextRestoredDirectory(output);
+        }
+
         if (Files.exists(output)) {
             showValidationError("The output file already exists. Choose another directory.");
             return null;
         }
         return output;
-    }
-
-    private String outputName(String name, boolean encrypt) {
-        if (encrypt) {
-            return name.endsWith(".enc") ? name : name + ".enc";
-        }
-
-        if (!name.endsWith(".enc")) {
-            return name + ".dec";
-        }
-
-        String result = name.substring(0, name.length() - 4);
-        return result.isBlank() ? "decrypted-file" : result;
     }
 
     private void showProgress(String title) {
@@ -491,6 +534,8 @@ public class MainView extends VBox {
     private void operationFinished() {
         progressBar.setProgress(1.0);
         backButton.setDisable(false);
+        inputField.clear();
+        outputDir.clear();
     }
 
     private void showValidationError(String message) {
@@ -503,6 +548,25 @@ public class MainView extends VBox {
                 .add(getClass().getResource("/style.css").toExternalForm());
         alert.getDialogPane().getStyleClass().add("error-alert");
         alert.showAndWait();
+    }
+
+    private boolean confirmReplacement(Path input) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("");
+        alert.setHeaderText("Original data will be replaced");
+        alert.setContentText(
+                "After successful encryption, the original "
+                        + (Files.isDirectory(input) ? "folder and its contents" : "file")
+                        + " will be permanently deleted. Continue?"
+        );
+        alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        alert.initOwner(getStage());
+        alert.getDialogPane().getStylesheets()
+                .add(getClass().getResource("/style.css").toExternalForm());
+        alert.getDialogPane().getStyleClass().add("warning-alert");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
     }
 
     private void showForm() {

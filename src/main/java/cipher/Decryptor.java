@@ -18,10 +18,18 @@ import java.util.Objects;
 import java.util.function.DoubleConsumer;
 
 public class Decryptor extends FileCipher {
-    private static final int HEADER_LENGTH = MAGIC.length + 1 + SALT_LENGTH + NONCE_PREFIX_LENGTH;
+    private static final int HEADER_LENGTH = MAGIC.length + 2 + SALT_LENGTH + NONCE_PREFIX_LENGTH;
+    private PayloadType payloadType;
 
     public Decryptor(Path inputPath, Path outputPath) {
         super(inputPath, outputPath);
+    }
+
+    public PayloadType payloadType() {
+        if (payloadType == null) {
+            throw new IllegalStateException("Encrypted header has not been read.");
+        }
+        return payloadType;
     }
 
     public void decrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
@@ -37,7 +45,7 @@ public class Decryptor extends FileCipher {
 
         Path tempFile = createTempOutputFile(saveMode);
         long totalBytes = Files.size(inputPath);
-        long processedBytes = 0;
+        long processedBytes;
 
         byte[] header = new byte[HEADER_LENGTH];
         byte[] salt = null;
@@ -56,7 +64,7 @@ public class Decryptor extends FileCipher {
                 processedBytes = HEADER_LENGTH;
                 progress.accept(Math.min(1.0, (double) processedBytes / totalBytes));
 
-                int offset = MAGIC.length + 1;
+                int offset = MAGIC.length + 2;
 
                 salt = Arrays.copyOfRange(header, offset, offset + SALT_LENGTH);
                 offset += SALT_LENGTH;
@@ -91,15 +99,10 @@ public class Decryptor extends FileCipher {
 
                             try {
                                 input.readFully(finalTag);
-                                processedBytes += Integer.BYTES + finalTag.length;
 
-                                byte[] finalData = decryptChunk(finalTag, key, noncePrefix, header, counter, 0);
-
-                                if (finalData.length != 0) {
+                                if (decryptChunk(finalTag, key, noncePrefix, header, counter, 0).length != 0) {
                                     throw new IOException("Invalid encrypted file end marker.");
                                 }
-
-                                Arrays.fill(finalData, (byte) 0);
                             } catch (EOFException e) {
                                 throw new IOException("Encrypted file has an incomplete end marker.", e);
                             } finally {
@@ -167,6 +170,7 @@ public class Decryptor extends FileCipher {
         if (header[MAGIC.length] != VERSION) {
             throw new IOException("Unsupported encrypted file version.");
         }
+        payloadType = PayloadType.fromCode(header[PAYLOAD_TYPE_OFFSET]);
     }
 
     private byte[] decryptChunk(byte[] encrypted, SecretKey key, byte[] noncePrefix, byte[] header, long counter, int length) throws GeneralSecurityException {

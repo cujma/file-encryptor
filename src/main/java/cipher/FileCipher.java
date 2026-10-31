@@ -15,9 +15,10 @@ public abstract class FileCipher {
     protected static final int SALT_LENGTH = 16;
     protected static final int NONCE_PREFIX_LENGTH = 8;
     protected static final int NONCE_LENGTH = 12;
+    // Header: magic, format version, payload type, salt, then nonce prefix.
     protected static final byte[] MAGIC = {'F', 'E', 'N', 'C', 'S', 'T', 'R', 'M'};
-    protected static final byte VERSION = 1;
-
+    protected static final byte VERSION = 2;
+    protected static final int PAYLOAD_TYPE_OFFSET = MAGIC.length + 1;
     protected final Path inputPath;
     protected final Path outputPath;
 

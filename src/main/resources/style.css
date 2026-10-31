@@ -142,7 +142,7 @@
 }
 
 .check-box:selected .mark {
-    -fx-background-color: white;
+    -fx-background-color: #3979ed;
 }
 
 .status-label {
@@ -224,6 +224,53 @@
 }
 
 .error-alert .button:hover {
+    -fx-background-color: #4b89ff;
+    -fx-border-color: #4b89ff;
+}
+
+.warning-alert {
+    -fx-background-color: #151922;
+    -fx-border-color: #454d5d;
+    -fx-border-width: 1px;
+}
+
+.warning-alert .header-panel {
+    -fx-background-color: #191c23;
+    -fx-padding: 16px 18px 12px 18px;
+}
+
+.warning-alert .header-panel .label,
+.warning-alert > .content .label {
+    -fx-text-fill: #e8edf2;
+}
+
+.warning-alert .header-panel .label {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.warning-alert > .content {
+    -fx-background-color: #151922;
+    -fx-padding: 16px 18px;
+}
+
+.warning-alert > .content .label {
+    -fx-font-size: 12px;
+}
+
+.warning-alert .button-bar {
+    -fx-background-color: #151922;
+    -fx-padding: 4px 12px 12px 12px;
+}
+
+.warning-alert .button {
+    -fx-background-color: #3979ed;
+    -fx-border-color: #3979ed;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.warning-alert .button:hover {
     -fx-background-color: #4b89ff;
     -fx-border-color: #4b89ff;
 }

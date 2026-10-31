@@ -18,9 +18,15 @@ import java.util.function.DoubleConsumer;
 
 public class Encryptor extends FileCipher {
     private final SecureRandom secureRandom = new SecureRandom();
+    private final PayloadType payloadType;
 
     public Encryptor(Path inputPath, Path outputPath) {
+        this(inputPath, outputPath, PayloadType.FILE);
+    }
+
+    public Encryptor(Path inputPath, Path outputPath, PayloadType payloadType) {
         super(inputPath, outputPath);
+        this.payloadType = Objects.requireNonNull(payloadType, "Payload type cannot be null");
     }
 
     public void encrypt(char[] password, SaveMode saveMode) throws IOException, GeneralSecurityException {
@@ -119,7 +125,7 @@ public class Encryptor extends FileCipher {
     }
 
     private byte[] createHeader(byte[] salt, byte[] noncePrefix) {
-        byte[] header = new byte[MAGIC.length + 1 + SALT_LENGTH + NONCE_PREFIX_LENGTH];
+        byte[] header = new byte[MAGIC.length + 2 + SALT_LENGTH + NONCE_PREFIX_LENGTH];
 
         int offset = 0;
 
@@ -127,6 +133,7 @@ public class Encryptor extends FileCipher {
         offset += MAGIC.length;
 
         header[offset++] = VERSION;
+        header[offset++] = payloadType.code();
 
         System.arraycopy(salt, 0, header, offset, salt.length);
         offset += salt.length;
@@ -143,6 +150,7 @@ public class Encryptor extends FileCipher {
         try {
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH_BITS, nonce));
 
+            // Binding the counter and plaintext length prevents block reordering or resizing.
             cipher.updateAAD(header);
             cipher.updateAAD(intToBytes((int) counter));
             cipher.updateAAD(intToBytes(length));

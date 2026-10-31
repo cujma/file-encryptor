@@ -36,6 +36,20 @@ class EncryptionTest {
     }
 
     @Test
+    void recordsFilePayloadType() throws IOException, GeneralSecurityException {
+        Path input = file("typed.txt");
+        Path encrypted = file("typed.txt.enc");
+        Path decrypted = file("typed-restored.txt");
+        Files.writeString(input, "typed payload");
+
+        encrypt(input, encrypted);
+        Decryptor decryptor = new Decryptor(encrypted, decrypted);
+        decryptor.decrypt(password(), SaveMode.SEPARATE_FILE);
+
+        assertEquals(PayloadType.FILE, decryptor.payloadType());
+    }
+
+    @Test
     void rejectsWrongPassword() throws IOException, GeneralSecurityException {
         Path input = file("message.txt");
         Path encrypted = file("message.txt.enc");
